@@ -12,6 +12,14 @@ You can track your best times, challenge yourself to beat them, and play comfort
 
 ---
 
+## 👀 Preview
+
+<img width="1284" height="847" alt="Screenshot 2025-09-06 at 03 44 04" src="https://github.com/user-attachments/assets/429016b9-682b-4063-9e25-774a46a06962" />
+
+<img width="1272" height="846" alt="Screenshot 2025-09-06 at 03 55 13" src="https://github.com/user-attachments/assets/5f6b5ca0-eee5-46e2-a79a-f9073b9df39d" />
+
+---
+
 ## ✨ Features
 
 - 🎲 **Four levels**: Easy, Medium, Hard, Expert.  
