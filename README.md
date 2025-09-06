@@ -80,3 +80,7 @@ npm run dev
 ```
 
 ---
+
+## 🔗 Connect
+- **LinkedIn:** [linkedin.com/in/cyristalj](https://www.linkedin.com/in/cyristalj/)  
+- **GitHub:** [github.com/cyristal-gems](https://github.com/cyristal-gems)
