@@ -1,7 +1,6 @@
 # sudoQ 
 
-A modern, responsive Sudoku game built with **React + TypeScript + TailwindCSS**, designed to work beautifully on desktop, tablet, and mobile.  
-Themed with soft pastel light mode and cozy dark mode, **sudoQ** makes playing Sudoku cute and fun while still being challenging.
+A modern, responsive Sudoku game built with **React + TypeScript + TailwindCSS**, designed to work beautifully on desktop, tablet, and mobile.  Themed with soft pastel light mode and cozy dark mode, **sudoQ** makes playing Sudoku cute and fun while still being challenging.
 
 ---
 
