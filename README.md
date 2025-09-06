@@ -66,7 +66,7 @@ A modern, responsive Sudoku game built with **React + TypeScript + TailwindCSS**
 
 ## 🚀 Play the Game
 
-👉 [Play sudoQ here](https://cyristal-gems.github.io/sudoQ)  
+👉 [sudoQ](https://cyristal-gems.github.io/sudoQ)  
 
 ---
 
