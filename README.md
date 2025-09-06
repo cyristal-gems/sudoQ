@@ -6,9 +6,7 @@ A modern, responsive Sudoku game built with **React + TypeScript + TailwindCSS**
 
 ## 🎯 Game Summary
 
-**sudoQ** is a Sudoku puzzle game with four difficulty levels: **Easy, Medium, Hard, Expert**. The goal is to fill the 9×9 grid so that each row, column, and 3×3 box contains the numbers 1–9 with no duplicates.
-
-You can track your best times, challenge yourself to beat them, and play comfortably on any device with intuitive touch, mouse, and keyboard controls.
+**sudoQ** is a Sudoku puzzle game with four difficulty levels: **Easy, Medium, Hard, Expert**. The goal is to fill the 9×9 grid so that each row, column, and 3×3 box contains the numbers 1–9 with no duplicates. You can track your best times, challenge yourself to beat them, and play comfortably on any device with intuitive touch, mouse, and keyboard controls.
 
 ---
 
@@ -22,23 +20,37 @@ You can track your best times, challenge yourself to beat them, and play comfort
 
 ## ✨ Features
 
-- 🎲 **Four levels**: Easy, Medium, Hard, Expert.  
-- ⏱ **Timer & Best Score**: Tracks your fastest time per level and celebrates new records with a “New Best!” badge.  
-- ❌ **Mistake Counter**: Maximum of 5 mistakes per game.  
-- 🔄 **Undo, Erase, Notes & Hints**: All accessible via icons, keyboard, or touch.  
-- 📱 **Cross-platform**: Play seamlessly on desktop, tablet, or mobile.  
-- 🌙 **Light & Dark Mode**: Cute pastel gradient in light mode and cozy dark tones in dark mode.
+- **Four levels**: Easy, Medium, Hard, Expert.  
+- **Timer & Best Score**: Tracks your fastest time per level and celebrates new records with a “New Best!” badge.  
+- **Mistake Counter**: Maximum of 5 mistakes per game.  
+- **Undo, Erase, Notes & Hints** buttons: All accessible via icons, keyboard, or touch.  
+- **Cross-platform**: Play seamlessly on desktop, tablet, or mobile devices.  
+- **Light & Dark Mode**: Cute pastel gradient in light mode and cozy dark tones in dark mode.
 
 ## 🎮 How To Play:  
 
-  - **1–9** → Place number  
-  - **Delete / Backspace** → Erase cell  
-  - **N** → Toggle Notes mode  
-  - **U** → Undo  
-  - **H** → Hint  
-  - **P** → Pause  
-  - **R** → Restart  
-  - **Arrow Keys** → Navigate board  
+### 📱 Mobile & Tablet (Touch)
+- **Select a cell:** Tap any cell on the grid.
+- **Place a number:** Tap a number on the bottom number bar (1–9).
+- **Erase:** Tap the **Erase** icon.
+- **Undo:** Tap the **Undo** icon.
+- **Notes (pencil icon):** Tap to toggle Notes on/off, then tap numbers to add/remove pencil marks.
+- **Hint:** Tap the **Hint** icon.
+- **Pause/Restart:** Use the buttons in the header.
+- **Theme:** Toggle **Light/Dark** mode from the header.
+- *(Supported devices provide subtle haptic feedback on taps.)*
+
+### ⌨️ Desktop & Laptop (Keyboard + Mouse)
+- **Select a cell:** Click any cell on the grid.
+- **Place a number:** Press **1–9**.
+- **Erase:** **Delete** or **Backspace**.
+- **Notes:** **N** to toggle Notes on/off.
+- **Undo:** **U**
+- **Hint:** **H**
+- **Pause:** **P**
+- **Restart:** **R**
+- **Move:** **Arrow Keys** to navigate cells.
+ 
 
 ---
 
