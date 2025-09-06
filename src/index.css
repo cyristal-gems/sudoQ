@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light dark; }
+
+.card {
+  @apply bg-white/90 dark:bg-[#1d1b2a]/90 backdrop-blur rounded-cute shadow-cute border border-rose-100/80 dark:border-violet-800/40;
+}
+.primary {
+  @apply bg-rose-500 text-white dark:bg-violet-400 dark:text-black;
+}
+.soft {
+  @apply bg-rose-100 text-rose-900 dark:bg-violet-900 dark:text-violet-100;
+}
+kbd {
+  @apply inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 px-1.5 py-0.5 text-xs font-mono;
+}
