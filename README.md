@@ -53,7 +53,7 @@
 
 ## 🚀 Play the Game
 
-👉 [sudoQ](https://cyristal-gems.github.io/sudoQ)  
+👉 [sudoQ](https://cyrisjoseph.dev/sudoQ)
 
 ---
 
