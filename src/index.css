@@ -2,17 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light dark; }
+:root {
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+select {
+  font: inherit;
+}
 
 .card {
-  @apply bg-white/90 dark:bg-[#1d1b2a]/90 backdrop-blur rounded-cute shadow-cute border border-rose-100/80 dark:border-violet-800/40;
+  @apply rounded-cute border border-zinc-200/80 bg-white/90 shadow-cute backdrop-blur dark:border-zinc-700/70 dark:bg-zinc-950/85;
 }
 .primary {
-  @apply bg-rose-500 text-white dark:bg-violet-400 dark:text-black;
+  @apply bg-teal-600 text-white hover:bg-teal-700 dark:bg-cyan-300 dark:text-zinc-950 dark:hover:bg-cyan-200;
 }
 .soft {
-  @apply bg-rose-100 text-rose-900 dark:bg-violet-900 dark:text-violet-100;
+  @apply bg-amber-100 text-amber-950 dark:bg-amber-300/15 dark:text-amber-100;
 }
 kbd {
-  @apply inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 px-1.5 py-0.5 text-xs font-mono;
+  @apply inline-flex items-center justify-center rounded-md border border-zinc-300 px-1.5 py-0.5 font-mono text-xs dark:border-zinc-700;
 }

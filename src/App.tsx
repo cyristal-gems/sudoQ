@@ -1,49 +1,97 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Difficulty = "easy" | "medium" | "hard" | "expert";
-type Theme = 'light' | 'dark';
+type Theme = "light" | "dark";
+type Settings = { notesMode: boolean; theme: Theme };
 
-type Cell = { value: number | null; given: boolean; notes: Set<number>; conflict: boolean };
+type Cell = {
+  value: number | null;
+  given: boolean;
+  notes: Set<number>;
+  conflict: boolean;
+};
 type Board = Cell[];
 
+const MAX_MISTAKES = 5;
+const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  expert: "Expert",
+};
+
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
-const cloneBoard = (b: Board): Board => b.map((c) => ({ ...c, notes: new Set(c.notes) }));
-const idxToRC = (i: number) => ({ r: Math.floor(i / 9), c: i % 9 });
+const cloneBoard = (board: Board): Board =>
+  board.map((cell) => ({ ...cell, notes: new Set(cell.notes) }));
+const idxToRC = (index: number) => ({ r: Math.floor(index / 9), c: index % 9 });
 const rcToIdx = (r: number, c: number) => r * 9 + c;
 const sameBox = (r1: number, c1: number, r2: number, c2: number) =>
   Math.floor(r1 / 3) === Math.floor(r2 / 3) && Math.floor(c1 / 3) === Math.floor(c2 / 3);
-const shuffle = <T,>(arr: T[]) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const arePeers = (a: number, b: number) => {
+  const first = idxToRC(a);
+  const second = idxToRC(b);
+  return first.r === second.r || first.c === second.c || sameBox(first.r, first.c, second.r, second.c);
+};
+const shuffle = <T,>(items: T[]) => {
+  const shuffled = items.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
-function vibrate(pattern: number | number[]) { if ('vibrate' in navigator) { try {(navigator as any).vibrate(pattern)} catch{} } }
+function vibrate(pattern: number | number[]) {
+  if ("vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      // Haptics are optional and unsupported on some browsers.
+    }
+  }
+}
 const tap = () => vibrate(10);
-const wrong = () => vibrate([20,40]);
-const yay = () => vibrate([10,10,10]);
+const wrong = () => vibrate([20, 40]);
+const yay = () => vibrate([10, 10, 10]);
 
-function isSafeNum(boardNums: number[], idx: number, num: number): boolean {
-  const { r, c } = idxToRC(idx);
-  for (let j = 0; j < 9; j++) if (boardNums[rcToIdx(r, j)] === num) return false;
-  for (let i = 0; i < 9; i++) if (boardNums[rcToIdx(i, c)] === num) return false;
-  const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (boardNums[rcToIdx(br + i, bc + j)] === num) return false;
+function isSafeNum(boardNums: number[], index: number, num: number): boolean {
+  const { r, c } = idxToRC(index);
+  for (let col = 0; col < 9; col++) if (boardNums[rcToIdx(r, col)] === num) return false;
+  for (let row = 0; row < 9; row++) if (boardNums[rcToIdx(row, c)] === num) return false;
+
+  const br = Math.floor(r / 3) * 3;
+  const bc = Math.floor(c / 3) * 3;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      if (boardNums[rcToIdx(br + row, bc + col)] === num) return false;
+    }
+  }
   return true;
 }
 
-function backtrackFill(boardNums: number[], idx = 0): boolean {
-  if (idx === 81) return true;
-  if (boardNums[idx] !== 0) return backtrackFill(boardNums, idx + 1);
-  for (const num of shuffle([1,2,3,4,5,6,7,8,9])) {
-    if (isSafeNum(boardNums, idx, num)) { boardNums[idx] = num; if (backtrackFill(boardNums, idx + 1)) return true; boardNums[idx] = 0; }
+function backtrackFill(boardNums: number[], index = 0): boolean {
+  if (index === 81) return true;
+  if (boardNums[index] !== 0) return backtrackFill(boardNums, index + 1);
+
+  for (const num of shuffle(NUMBERS)) {
+    if (isSafeNum(boardNums, index, num)) {
+      boardNums[index] = num;
+      if (backtrackFill(boardNums, index + 1)) return true;
+      boardNums[index] = 0;
+    }
   }
   return false;
 }
 
 function generateSolvedBoard(): number[] {
   const boardNums = Array(81).fill(0);
-  for (let b = 0; b < 3; b++) {
-    const nums = shuffle([1,2,3,4,5,6,7,8,9]);
-    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
-      const r = b * 3 + i, c = b * 3 + j;
-      boardNums[rcToIdx(r, c)] = nums[i * 3 + j];
+  for (let box = 0; box < 3; box++) {
+    const nums = shuffle(NUMBERS);
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        boardNums[rcToIdx(box * 3 + row, box * 3 + col)] = nums[row * 3 + col];
+      }
     }
   }
   backtrackFill(boardNums);
@@ -53,82 +101,224 @@ function generateSolvedBoard(): number[] {
 function countSolutions(boardNums: number[], limit = 2): number {
   let solutions = 0;
   const nums = boardNums.slice();
-  function bt(idx = 0) {
+
+  function backtrack(index = 0) {
     if (solutions >= limit) return;
-    while (idx < 81 && nums[idx] !== 0) idx++;
-    if (idx === 81) { solutions++; return; }
-    for (const n of [1,2,3,4,5,6,7,8,9]) {
-      if (isSafeNum(nums, idx, n)) { nums[idx] = n; bt(idx + 1); nums[idx] = 0; if (solutions >= limit) return; }
+    while (index < 81 && nums[index] !== 0) index++;
+    if (index === 81) {
+      solutions++;
+      return;
+    }
+
+    for (const num of NUMBERS) {
+      if (isSafeNum(nums, index, num)) {
+        nums[index] = num;
+        backtrack(index + 1);
+        nums[index] = 0;
+        if (solutions >= limit) return;
+      }
     }
   }
-  bt(0);
+
+  backtrack();
   return solutions;
 }
 
 function generatePuzzle(difficulty: Difficulty): { puzzle: number[]; solution: number[] } {
   const solution = generateSolvedBoard();
   const targetClues: Record<Difficulty, number> = { easy: 40, medium: 34, hard: 28, expert: 24 };
-  const clues = targetClues[difficulty];
   const puzzle = solution.slice();
-  const order = shuffle(range(81));
-  for (const i of order) {
-    const j = 80 - i;
-    const toTry = [i]; if (j !== i) toTry.push(j);
-    for (const k of toTry) {
-      if (puzzle.filter((x) => x !== 0).length <= clues) break;
-      const saved = puzzle[k]; if (saved === 0) continue;
-      puzzle[k] = 0;
-      if (countSolutions(puzzle, 2) !== 1) puzzle[k] = saved;
+  let clueCount = 81;
+
+  for (const index of shuffle(range(81))) {
+    const mirroredIndex = 80 - index;
+    for (const candidateIndex of index === mirroredIndex ? [index] : [index, mirroredIndex]) {
+      if (clueCount <= targetClues[difficulty]) break;
+      const saved = puzzle[candidateIndex];
+      if (saved === 0) continue;
+
+      puzzle[candidateIndex] = 0;
+      if (countSolutions(puzzle) === 1) {
+        clueCount--;
+      } else {
+        puzzle[candidateIndex] = saved;
+      }
     }
-    if (puzzle.filter((x) => x !== 0).length <= clues) break;
+    if (clueCount <= targetClues[difficulty]) break;
   }
+
   return { puzzle, solution };
 }
 
-const LS_BEST = (lvl: Difficulty) => `sudoq_best_${lvl}`;
-const LS_SETTINGS = `sudoq_settings`;
+const LS_BEST = (level: Difficulty) => `sudoq_best_${level}`;
+const LS_SETTINGS = "sudoq_settings";
 
-function loadBest(lvl: Difficulty): number | null { const v = localStorage.getItem(LS_BEST(lvl)); return v ? Number(v) : null; }
-function saveBest(lvl: Difficulty, ms: number) { localStorage.setItem(LS_BEST(lvl), String(ms)); }
-function loadSettings() { try { const raw = localStorage.getItem(LS_SETTINGS); if (!raw) return { notesMode:false, theme:'light' }; const p = JSON.parse(raw); return { notesMode: !!p.notesMode, theme: (p.theme ?? 'light') as Theme }; } catch { return { notesMode:false, theme:'light' as Theme }; } }
-function saveSettings(ns: { notesMode: boolean; theme: Theme }) { localStorage.setItem(LS_SETTINGS, JSON.stringify(ns)); }
+function loadBest(level: Difficulty): number | null {
+  const value = localStorage.getItem(LS_BEST(level));
+  return value ? Number(value) : null;
+}
+
+function saveBest(level: Difficulty, ms: number) {
+  localStorage.setItem(LS_BEST(level), String(ms));
+}
+
+function loadSettings(): Settings {
+  try {
+    const raw = localStorage.getItem(LS_SETTINGS);
+    if (!raw) return { notesMode: false, theme: "light" };
+    const parsed = JSON.parse(raw);
+    return {
+      notesMode: Boolean(parsed.notesMode),
+      theme: parsed.theme === "dark" ? "dark" : "light",
+    };
+  } catch {
+    return { notesMode: false, theme: "light" };
+  }
+}
+
+function saveSettings(settings: Settings) {
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+}
+
+function msToClock(ms: number) {
+  const seconds = Math.floor(ms / 1000);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return `${hours > 0 ? `${hours}:` : ""}${String(minutes).padStart(2, "0")}:${String(
+    remainingSeconds,
+  ).padStart(2, "0")}`;
+}
 
 export default function App() {
-  const initial = loadSettings();
+  const initialSettings = loadSettings();
   const [level, setLevel] = useState<Difficulty>("easy");
-  const [board, setBoard] = useState<Board>(() => range(81).map(() => ({ value:null, given:false, notes:new Set(), conflict:false })));
+  const [board, setBoard] = useState<Board>(() =>
+    range(81).map(() => ({ value: null, given: false, notes: new Set(), conflict: false })),
+  );
   const [solution, setSolution] = useState<number[] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
-  const [notesMode, setNotesMode] = useState<boolean>(initial.notesMode);
-  const [theme, setTheme] = useState<Theme>(initial.theme);
-  const [running, setRunning] = useState<boolean>(false);
-  const [elapsed, setElapsed] = useState<number>(0);
+  const [notesMode, setNotesMode] = useState(initialSettings.notesMode);
+  const [theme, setTheme] = useState<Theme>(initialSettings.theme);
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [bestMs, setBestMs] = useState<number | null>(() => loadBest(level));
-  const [paused, setPaused] = useState<boolean>(false);
-  const [mistakes, setMistakes] = useState<number>(0);
-  const [gameOver, setGameOver] = useState<boolean>(false);
-  const [solved, setSolved] = useState<boolean>(false);
-  const [newBest, setNewBest] = useState<boolean>(false);
+  const [paused, setPaused] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [solved, setSolved] = useState(false);
+  const [showSolvedModal, setShowSolvedModal] = useState(false);
+  const [newBest, setNewBest] = useState(false);
+  const [lastWrong, setLastWrong] = useState<number | null>(null);
 
   const undoStack = useRef<Board[]>([]);
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
+  const wrongFlashRef = useRef<number | null>(null);
+
+  const canPlay = !paused && !gameOver && !solved;
+  const filledCells = useMemo(() => board.filter((cell) => cell.value != null).length, [board]);
+  const remainingCells = 81 - filledCells;
+  const progress = Math.round((filledCells / 81) * 100);
+  const bestLabel = bestMs != null ? msToClock(bestMs) : "--:--";
+  const selectedValue = selected == null ? null : board[selected]?.value ?? null;
+  const isComplete = useMemo(
+    () => solution != null && board.every((cell, index) => cell.value === solution[index]),
+    [board, solution],
+  );
 
   useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    document.documentElement.classList.toggle("dark", theme === "dark");
     saveSettings({ notesMode, theme });
-  }, [theme, notesMode]);
+  }, [notesMode, theme]);
 
   useEffect(() => {
     startNewPuzzle();
   }, [level]);
 
+  useEffect(() => {
+    if (!running || paused || gameOver || solved) return;
+
+    function tick() {
+      if (startRef.current != null) setElapsed(performance.now() - startRef.current);
+      timerRef.current = requestAnimationFrame(tick);
+    }
+
+    timerRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (timerRef.current != null) cancelAnimationFrame(timerRef.current);
+    };
+  }, [running, paused, gameOver, solved]);
+
+  useEffect(() => {
+    if (!isComplete || gameOver || solved) return;
+
+    setRunning(false);
+    setSolved(true);
+    setShowSolvedModal(true);
+
+    if (bestMs == null || elapsed < bestMs) {
+      saveBest(level, elapsed);
+      setBestMs(elapsed);
+      setNewBest(true);
+      yay();
+    } else {
+      tap();
+    }
+  }, [bestMs, elapsed, gameOver, isComplete, level, solved]);
+
+  useEffect(() => {
+    return () => {
+      if (wrongFlashRef.current != null) window.clearTimeout(wrongFlashRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const key = event.key.toLowerCase();
+
+      if (event.key >= "1" && event.key <= "9") {
+        placeNumber(Number(event.key));
+        event.preventDefault();
+      } else if (event.key === "Backspace" || event.key === "Delete") {
+        erase();
+        event.preventDefault();
+      } else if (key === "n") {
+        toggleNotesMode();
+        event.preventDefault();
+      } else if (key === "u") {
+        undo();
+        event.preventDefault();
+      } else if (key === "h") {
+        hint();
+        event.preventDefault();
+      } else if (key === "p") {
+        togglePause();
+        event.preventDefault();
+      } else if (key === "r") {
+        startNewPuzzle();
+        event.preventDefault();
+      } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+        moveSelection(event.key);
+        event.preventDefault();
+      }
+    }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [board, canPlay, elapsed, level, notesMode, paused, running, selected, solution, theme]);
+
   function startNewPuzzle() {
-    const g = generatePuzzle(level);
-    const b: Board = g.puzzle.map((n) => ({ value: n === 0 ? null : n, given: n !== 0, notes: new Set<number>(), conflict: false }));
-    setBoard(markConflicts(b));
-    setSolution(g.solution);
+    const generated = generatePuzzle(level);
+    const nextBoard: Board = generated.puzzle.map((num) => ({
+      value: num === 0 ? null : num,
+      given: num !== 0,
+      notes: new Set<number>(),
+      conflict: false,
+    }));
+
+    setBoard(markConflicts(nextBoard));
+    setSolution(generated.solution);
     setSelected(null);
     setElapsed(0);
     setRunning(false);
@@ -136,310 +326,408 @@ export default function App() {
     setMistakes(0);
     setGameOver(false);
     setSolved(false);
+    setShowSolvedModal(false);
     setNewBest(false);
+    setLastWrong(null);
     startRef.current = null;
     undoStack.current = [];
     setBestMs(loadBest(level));
   }
 
-  function markConflicts(b: Board): Board {
-    const next = cloneBoard(b); next.forEach((c) => (c.conflict = false));
-    for (let i = 0; i < 81; i++) {
-      const val = next[i].value; if (!val) continue;
-      const { r, c } = idxToRC(i);
-      for (let j = 0; j < 9; j++) { const idx = rcToIdx(r, j); if (idx !== i && next[idx].value === val) { next[i].conflict = true; next[idx].conflict = true; } }
-      for (let r2 = 0; r2 < 9; r2++) { const idx = rcToIdx(r2, c); if (idx !== i && next[idx].value === val) { next[i].conflict = true; next[idx].conflict = true; } }
-      const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
-      for (let i2 = 0; i2 < 3; i2++) for (let j2 = 0; j2 < 3; j2++) {
-        const idx = rcToIdx(br + i2, bc + j2);
-        if (idx !== i && next[idx].value === val) { next[i].conflict = true; next[idx].conflict = true; }
+  function markConflicts(sourceBoard: Board): Board {
+    const next = cloneBoard(sourceBoard);
+    next.forEach((cell) => {
+      cell.conflict = false;
+    });
+
+    for (let index = 0; index < 81; index++) {
+      const value = next[index].value;
+      if (!value) continue;
+      for (let peer = 0; peer < 81; peer++) {
+        if (peer !== index && next[peer].value === value && arePeers(index, peer)) {
+          next[index].conflict = true;
+          next[peer].conflict = true;
+        }
       }
     }
+
     return next;
   }
 
-  useEffect(() => {
-    if (!running || paused || gameOver || solved) return;
-    function tick() { if (startRef.current != null) setElapsed(performance.now() - startRef.current); timerRef.current = requestAnimationFrame(tick); }
-    timerRef.current = requestAnimationFrame(tick);
-    return () => { if (timerRef.current) cancelAnimationFrame(timerRef.current); };
-  }, [running, paused, gameOver, solved]);
-
-  function startTimerIfNeeded() { if (!running) { startRef.current = performance.now() - elapsed; setRunning(true); } }
-  function stopTimer() { setRunning(false); }
-
-  const isComplete = useMemo(() => board.every((c) => c.value != null && !c.conflict), [board]);
-  useEffect(() => {
-    if (isComplete && !gameOver && !solved) {
-      stopTimer();
-      setSolved(true);
-      const finalMs = elapsed;
-      const oldBest = bestMs;
-      if (oldBest == null || finalMs < oldBest) {
-        saveBest(level, finalMs);
-        setBestMs(finalMs);
-        setNewBest(true);
-        yay();
-      } else {
-        tap();
-      }
+  function clearPeerNotes(nextBoard: Board, index: number, value: number) {
+    for (let peer = 0; peer < 81; peer++) {
+      if (arePeers(index, peer)) nextBoard[peer].notes.delete(value);
     }
-  }, [isComplete]);
+  }
 
-  function handleMistake() {
-    setMistakes(m => {
-      const next = m + 1;
-      if (next >= 5) { setGameOver(true); stopTimer(); }
-      wrong();
+  function startTimerIfNeeded() {
+    if (paused || gameOver || solved) return;
+    if (!running) {
+      startRef.current = performance.now() - elapsed;
+      setRunning(true);
+    }
+  }
+
+  function togglePause() {
+    if (gameOver || solved || (!running && elapsed === 0)) return;
+
+    if (paused) {
+      startRef.current = performance.now() - elapsed;
+      setRunning(true);
+      setPaused(false);
+    } else {
+      setRunning(false);
+      setPaused(true);
+    }
+    tap();
+  }
+
+  function toggleNotesMode() {
+    if (!canPlay) return;
+
+    setNotesMode((current) => {
+      const next = !current;
+      saveSettings({ notesMode: next, theme });
       return next;
     });
+    tap();
   }
 
-  function placeNumber(n: number) {
-    if (selected == null || gameOver || solved) return;
-    const cell = board[selected]; if (cell.given) return;
-    startTimerIfNeeded();
-    const prev = cloneBoard(board);
-    const next = cloneBoard(board);
-    if (notesMode) {
-      const s = new Set(next[selected].notes);
-      if (s.has(n)) s.delete(n); else s.add(n);
-      next[selected].notes = s;
-      tap();
-    } else {
-      if (solution && n !== solution[selected]) handleMistake();
-      next[selected].value = n;
-      next[selected].notes.clear();
-      tap();
-    }
-    undoStack.current.push(prev);
-    setBoard(markConflicts(next));
+  function flashWrongCell(index: number) {
+    if (wrongFlashRef.current != null) window.clearTimeout(wrongFlashRef.current);
+    setLastWrong(index);
+    wrongFlashRef.current = window.setTimeout(() => {
+      setLastWrong((current) => (current === index ? null : current));
+    }, 500);
   }
-  function erase() {
-    if (selected == null || gameOver || solved) return;
-    const cell = board[selected]; if (cell.given) return;
+
+  function handleMistake(index: number) {
+    setMistakes((current) => {
+      const next = current + 1;
+      if (next >= MAX_MISTAKES) {
+        setGameOver(true);
+        setRunning(false);
+      }
+      return next;
+    });
+    flashWrongCell(index);
+    wrong();
+  }
+
+  function placeNumber(value: number) {
+    if (selected == null || !canPlay) return;
+    const cell = board[selected];
+    if (cell.given) return;
+
     startTimerIfNeeded();
-    const prev = cloneBoard(board);
+
+    if (!notesMode && solution && value !== solution[selected]) {
+      handleMistake(selected);
+      return;
+    }
+
+    const previous = cloneBoard(board);
+    const next = cloneBoard(board);
+
+    if (notesMode) {
+      if (next[selected].notes.has(value)) next[selected].notes.delete(value);
+      else next[selected].notes.add(value);
+    } else {
+      next[selected].value = value;
+      next[selected].notes.clear();
+      clearPeerNotes(next, selected, value);
+    }
+
+    undoStack.current.push(previous);
+    setBoard(markConflicts(next));
+    tap();
+  }
+
+  function erase() {
+    if (selected == null || !canPlay) return;
+    const cell = board[selected];
+    if (cell.given) return;
+
+    startTimerIfNeeded();
+    const previous = cloneBoard(board);
     const next = cloneBoard(board);
     next[selected].value = null;
-    undoStack.current.push(prev);
-    setBoard(markConflicts(next));
-    tap();
-  }
-  function undo() { const prev = undoStack.current.pop(); if (prev) { setBoard(prev); tap(); } }
-  function hint() {
-    if (!solution || gameOver || solved) return;
-    const empties = range(81).filter((i) => board[i].value == null);
-    if (empties.length === 0) return;
-    const i = empties[Math.floor(Math.random() * (empties.length))];
-    const prev = cloneBoard(board);
-    const next = cloneBoard(board);
-    next[i].value = solution[i];
-    next[i].notes.clear();
-    undoStack.current.push(prev);
+    undoStack.current.push(previous);
     setBoard(markConflicts(next));
     tap();
   }
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key >= "1" && e.key <= "9") { placeNumber(Number(e.key)); e.preventDefault(); }
-      else if (e.key === "Backspace" || e.key === "Delete") { erase(); e.preventDefault(); }
-      else if (e.key.toLowerCase() === "n") { setNotesMode(v => { const nv = !v; saveSettings({ notesMode: nv, theme }); return nv; }); e.preventDefault(); tap(); }
-      else if (e.key.toLowerCase() === "u") { undo(); e.preventDefault(); }
-      else if (e.key.toLowerCase() === "h") { hint(); e.preventDefault(); }
-      else if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
-        if (selected == null) return;
-        const { r, c } = idxToRC(selected);
-        let nr = r, nc = c;
-        if (e.key === "ArrowUp") nr = (r + 8) % 9;
-        if (e.key === "ArrowDown") nr = (r + 1) % 9;
-        if (e.key === "ArrowLeft") nc = (c + 8) % 9;
-        if (e.key === "ArrowRight") nc = (c + 1) % 9;
-        setSelected(rcToIdx(nr, nc));
-        e.preventDefault();
-      }
-      else if (e.key.toLowerCase() === "p") { if (!running) return; setPaused(p=>!p); tap(); }
-      else if (e.key.toLowerCase() === "r") { startNewPuzzle(); tap(); }
+  function undo() {
+    if (!canPlay) return;
+    const previous = undoStack.current.pop();
+    if (previous) {
+      setBoard(previous);
+      tap();
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [board, selected, notesMode, solution, theme, elapsed, running, paused, gameOver, solved]);
-
-  function msToClock(ms: number) {
-    const s = Math.floor(ms / 1000);
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return (h > 0 ? `${h}:` : "") + `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   }
-  const bestLabel = bestMs != null ? msToClock(bestMs) : "—";
+
+  function hint() {
+    if (!solution || !canPlay) return;
+    const empties = range(81).filter((index) => board[index].value == null);
+    if (empties.length === 0) return;
+
+    startTimerIfNeeded();
+    const index = empties[Math.floor(Math.random() * empties.length)];
+    const value = solution[index];
+    const previous = cloneBoard(board);
+    const next = cloneBoard(board);
+    next[index].value = value;
+    next[index].notes.clear();
+    clearPeerNotes(next, index, value);
+    undoStack.current.push(previous);
+    setBoard(markConflicts(next));
+    setSelected(index);
+    tap();
+  }
+
+  function moveSelection(key: string) {
+    if (!canPlay) return;
+    const current = selected ?? board.findIndex((cell) => !cell.given);
+    if (current < 0) return;
+
+    const { r, c } = idxToRC(current);
+    const nextRow = key === "ArrowUp" ? (r + 8) % 9 : key === "ArrowDown" ? (r + 1) % 9 : r;
+    const nextCol = key === "ArrowLeft" ? (c + 8) % 9 : key === "ArrowRight" ? (c + 1) % 9 : c;
+    setSelected(rcToIdx(nextRow, nextCol));
+  }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center p-4 text-gray-900 dark:text-gray-100">
-      {/* Solved modal */}
-      {solved && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative z-10 card p-6 w-[90vw] max-w-sm text-center">
-            <h2 className="text-2xl font-bold mb-1">Puzzle solved!</h2>
-            <p className="text-sm mb-3">Time: <span className="font-semibold">{msToClock(elapsed)}</span></p>
-            {newBest && <div className="inline-block px-3 py-1 rounded-full soft mb-4">New Best ★</div>}
-            <div className="flex justify-center gap-2">
-              <button onClick={() => startNewPuzzle()} className="px-3 py-2 rounded-cute primary shadow-cute active:scale-95">New Puzzle</button>
-              <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); }} className="px-3 py-2 rounded-cute border bg-white/70 dark:bg-[#1d1b2a]/70">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Game over modal */}
-      {gameOver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="relative z-10 card p-6 w-[90vw] max-w-sm text-center">
-            <h2 className="text-xl font-semibold mb-2">Out of mistakes</h2>
-            <p className="text-sm mb-4">You reached 5 mistakes. Try a new puzzle?</p>
-            <button onClick={() => startNewPuzzle()} className="px-3 py-2 rounded-cute primary shadow-cute active:scale-95">New Puzzle</button>
-          </div>
-        </div>
-      )}
-
-      <div className="w-full max-w-[1000px] pb-28">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">sudoQ</h1>
-            <span className="text-xs px-2 py-1 rounded-full soft">React · TypeScript</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <select aria-label="Difficulty" value={level} onChange={(e) => setLevel(e.target.value as Difficulty)} className="px-3 py-2 rounded-cute border bg-white/80 dark:bg-[#1d1b2a]/80 shadow-cute">
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-              <option value="expert">Expert</option>
-            </select>
-            <button className="px-3 py-2 rounded-cute primary shadow-cute active:scale-95" onClick={() => startNewPuzzle()}>New Puzzle</button>
-            <button className="px-3 py-2 rounded-cute border bg-white/80 dark:bg-[#1d1b2a]/80 hover:bg-white shadow-cute active:scale-95" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-              {theme === 'light' ? 'Dark mode' : 'Light mode'}
+    <div className="min-h-screen w-full bg-gradient-to-b from-sky-50 via-white to-amber-50 p-3 text-zinc-900 dark:from-zinc-950 dark:via-[#10202a] dark:to-[#2a1f16] dark:text-zinc-100 sm:p-4">
+      {solved && showSolvedModal && (
+        <Modal>
+          <h2 className="mb-1 text-2xl font-bold">Puzzle solved!</h2>
+          <p className="mb-3 text-sm">
+            Time: <span className="font-semibold">{msToClock(elapsed)}</span>
+          </p>
+          {newBest && <div className="soft mb-4 inline-block rounded-full px-3 py-1">New Best</div>}
+          <div className="flex justify-center gap-2">
+            <button onClick={startNewPuzzle} className="primary rounded-cute px-3 py-2 shadow-cute active:scale-95">
+              New Puzzle
+            </button>
+            <button
+              onClick={() => setShowSolvedModal(false)}
+              className="rounded-cute border bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950/70"
+            >
+              Close
             </button>
           </div>
-        </div>
+        </Modal>
+      )}
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-          <div className="relative md:col-span-2 card p-3">
-            <div className="text-xs opacity-60 mb-1">Time</div>
-            <div className="text-2xl font-semibold">{msToClock(elapsed)}</div>
-            <div className="absolute top-2 right-2 flex gap-2">
-              <button title="Pause/Resume (P)" onClick={() => { if (!running) return; setPaused(p=>!p); tap(); }} className="px-3 py-1 text-xs rounded-cute border bg-white/70 dark:bg-[#1d1b2a]/70"> {paused ? 'Resume' : 'Pause'} </button>
-              <button title="Restart (R)" onClick={() => { startNewPuzzle(); tap(); }} className="px-3 py-1 text-xs rounded-cute border bg-white/70 dark:bg-[#1d1b2a]/70">Restart</button>
-            </div>
-          </div>
-          <div className="card p-3">
-            <div className="text-xs opacity-60 mb-1">Best ({level})</div>
-            <div className="text-2xl font-semibold flex items-center gap-2">
-              {bestLabel}
-              {newBest && <span className="text-[10px] px-2 py-0.5 rounded-full soft">New Best!</span>}
-            </div>
-          </div>
-          <div className="card p-3">
-            <div className="text-xs opacity-60 mb-1">Mistakes</div>
-            <div className={`text-2xl font-semibold ${mistakes>=4?'text-rose-600 dark:text-rose-300':''}`}>{mistakes}/5</div>
-          </div>
-          <div className="card p-3 hidden md:flex items-center justify-center">
-            <div className="text-xs opacity-70">Press <kbd>N</kbd> for Notes • <kbd>U</kbd> Undo • <kbd>H</kbd> Hint</div>
-          </div>
-        </div>
+      {gameOver && (
+        <Modal>
+          <h2 className="mb-2 text-xl font-semibold">Out of mistakes</h2>
+          <p className="mb-4 text-sm">You reached {MAX_MISTAKES} mistakes.</p>
+          <button onClick={startNewPuzzle} className="primary rounded-cute px-3 py-2 shadow-cute active:scale-95">
+            New Puzzle
+          </button>
+        </Modal>
+      )}
 
-        <div className="grid md:grid-cols-[minmax(0,1fr)_260px] gap-4">
+      <main className="mx-auto flex w-full max-w-[1040px] flex-col pb-36 sm:pb-32">
+        <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-black leading-tight tracking-normal">sudoQ</h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-300">A clean, cozy Sudoku board.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="Difficulty"
+              value={level}
+              onChange={(event) => setLevel(event.target.value as Difficulty)}
+              className="rounded-cute border border-zinc-200 bg-white/85 px-3 py-2 shadow-cute dark:border-zinc-700 dark:bg-zinc-950/85"
+            >
+              {Object.entries(DIFFICULTY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button className="primary rounded-cute px-3 py-2 shadow-cute active:scale-95" onClick={startNewPuzzle}>
+              New Puzzle
+            </button>
+            <button
+              className="rounded-cute border border-zinc-200 bg-white/85 px-3 py-2 shadow-cute active:scale-95 dark:border-zinc-700 dark:bg-zinc-950/85"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            >
+              {theme === "light" ? "Dark" : "Light"}
+            </button>
+          </div>
+        </header>
+
+        <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+          <StatCard label="Time" value={msToClock(elapsed)}>
+            <div className="mt-3 flex gap-2">
+              <button
+                title="Pause or resume"
+                onClick={togglePause}
+                disabled={gameOver || solved || (!running && elapsed === 0)}
+                className="rounded-cute border border-zinc-200 bg-white/70 px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-950/70"
+              >
+                {paused ? "Resume" : "Pause"}
+              </button>
+              <button
+                title="Restart"
+                onClick={startNewPuzzle}
+                className="rounded-cute border border-zinc-200 bg-white/70 px-3 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950/70"
+              >
+                Restart
+              </button>
+            </div>
+          </StatCard>
+
+          <StatCard label={`Best (${DIFFICULTY_LABELS[level]})`} value={bestLabel}>
+            {newBest && <span className="soft mt-2 inline-block rounded-full px-2 py-0.5 text-[10px]">New Best</span>}
+          </StatCard>
+
+          <StatCard label="Mistakes" value={`${mistakes}/${MAX_MISTAKES}`}>
+            <div className="mt-3 flex gap-1">
+              {range(MAX_MISTAKES).map((index) => (
+                <span
+                  key={index}
+                  className={[
+                    "h-1.5 flex-1 rounded-full",
+                    index < mistakes ? "bg-rose-500 dark:bg-rose-300" : "bg-zinc-200 dark:bg-zinc-700",
+                  ].join(" ")}
+                />
+              ))}
+            </div>
+          </StatCard>
+
+          <StatCard label="Progress" value={`${progress}%`}>
+            <div className="mt-3 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700">
+              <div className="h-full rounded-full bg-teal-500" style={{ width: `${progress}%` }} />
+            </div>
+          </StatCard>
+
+          <StatCard label="Remaining" value={String(remainingCells)} />
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
           <div className="flex justify-center">
             <div className="relative select-none">
-              <div className="grid grid-cols-9 grid-rows-9 border-4 border-rose-300 dark:border-violet-500 bg-white/80 dark:bg-[#1d1b2a] rounded-cute overflow-hidden shadow-cute" style={{ width: "min(92vw, 640px)", height: "min(92vw, 640px)" }}>
-                {range(81).map((i) => {
-                  const cell = board[i];
-                  const { r, c } = idxToRC(i);
+              <div
+                className="grid grid-cols-9 grid-rows-9 overflow-hidden rounded-cute border-4 border-teal-500 bg-white/95 shadow-cute dark:border-cyan-300 dark:bg-zinc-950"
+                style={{ width: "min(92vw, 640px)", height: "min(92vw, 640px)" }}
+              >
+                {range(81).map((index) => {
+                  const cell = board[index];
+                  const { r, c } = idxToRC(index);
                   const thickRight = (c + 1) % 3 === 0 && c !== 8;
                   const thickBottom = (r + 1) % 3 === 0 && r !== 8;
-                  const isSelected = selected === i;
-                  const isPeer = selected != null && (() => {
-                    const { r: sr, c: sc } = idxToRC(selected!);
-                    return sr === r || sc === c || sameBox(sr, sc, r, c);
-                  })();
+                  const isSelected = selected === index;
+                  const isPeer = selected != null && arePeers(selected, index);
+                  const isSameValue = selectedValue != null && cell.value === selectedValue;
+                  const isWrongFlash = lastWrong === index;
 
                   return (
-                    <div
-                      key={i}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Cell ${r + 1},${c + 1}`}
-                      onClick={() => { setSelected(i); tap(); }}
+                    <button
+                      key={index}
+                      type="button"
+                      aria-label={`Cell ${r + 1}, ${c + 1}${cell.value ? `, ${cell.value}` : ""}`}
+                      aria-pressed={isSelected}
+                      disabled={paused}
+                      onClick={() => {
+                        if (!paused) {
+                          setSelected(index);
+                          tap();
+                        }
+                      }}
                       className={[
-                        "relative flex items-center justify-center border-rose-100/60 dark:border-violet-700/40",
-                        thickRight ? "border-r-4 border-rose-300 dark:border-violet-500" : "border-r",
-                        thickBottom ? "border-b-4 border-rose-300 dark:border-violet-500" : "border-b",
-                        isSelected ? "bg-rose-100/80 dark:bg-violet-900/60" : isPeer ? "bg-rose-50/80 dark:bg-violet-800/40" : "bg-transparent",
-                        cell.given ? "font-semibold" : "",
-                        cell.conflict ? "bg-rose-200/70 dark:bg-red-900/60" : "",
-                        "cursor-pointer",
+                        "relative flex appearance-none items-center justify-center border-zinc-200/80 bg-transparent text-center outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-default dark:border-zinc-700",
+                        thickRight ? "border-r-4 border-r-teal-500 dark:border-r-cyan-300" : "border-r",
+                        thickBottom ? "border-b-4 border-b-teal-500 dark:border-b-cyan-300" : "border-b",
+                        isSelected
+                          ? "bg-amber-100 dark:bg-amber-400/20"
+                          : isSameValue
+                            ? "bg-cyan-50 dark:bg-cyan-400/15"
+                            : isPeer
+                              ? "bg-zinc-100/80 dark:bg-zinc-800/80"
+                              : "",
+                        cell.given ? "font-black text-zinc-950 dark:text-zinc-50" : "text-teal-700 dark:text-cyan-200",
+                        cell.conflict || isWrongFlash ? "bg-rose-200 text-rose-700 dark:bg-rose-950 dark:text-rose-200" : "",
                       ].join(" ")}
                     >
                       {cell.value ? (
-                        <span className="text-2xl md:text-3xl">{cell.value}</span>
+                        <span className="text-xl sm:text-2xl md:text-3xl">{cell.value}</span>
                       ) : cell.notes.size > 0 ? (
-                        <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-1 text-[10px] md:text-[12px] leading-none text-rose-800/80 dark:text-violet-200/90">
-                          {range(9).map((n) => (
-                            <div key={n} className="flex items-center justify-center">
-                              {cell.notes.has(n + 1) ? n + 1 : ""}
-                            </div>
+                        <span className="grid h-full w-full grid-cols-3 grid-rows-3 p-1 text-[9px] leading-none text-zinc-500 dark:text-zinc-300 sm:text-[11px]">
+                          {NUMBERS.map((num) => (
+                            <span key={num} className="flex items-center justify-center">
+                              {cell.notes.has(num) ? num : ""}
+                            </span>
                           ))}
-                        </div>
+                        </span>
                       ) : null}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
+
+              {paused && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center rounded-cute bg-white/90 text-center backdrop-blur-sm dark:bg-zinc-950/90">
+                  <div className="mb-3 text-2xl font-bold">Paused</div>
+                  <button onClick={togglePause} className="primary rounded-cute px-4 py-2 shadow-cute active:scale-95">
+                    Resume
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right column now just a cute tips card; removed checkbox pane entirely */}
-          <div className="flex flex-col gap-3">
-            <div className="card p-3">
-              <div className="text-sm">Tips</div>
-              <ul className="text-xs mt-1 space-y-1 opacity-80">
-                <li>Toggle <strong>Notes</strong> with the pencil icon or <kbd>N</kbd>.</li>
-                <li>Use <kbd>U</kbd> to undo, <kbd>H</kbd> for a hint.</li>
-                <li>Pause with <kbd>P</kbd> · Restart with <kbd>R</kbd>.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+          <aside className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <InfoPanel title="Selected" value={selected == null ? "--" : `${idxToRC(selected).r + 1}, ${idxToRC(selected).c + 1}`} />
+            <InfoPanel title="Notes" value={notesMode ? "On" : "Off"} />
+            <InfoPanel title="Level" value={DIFFICULTY_LABELS[level]} />
+          </aside>
+        </section>
+      </main>
 
-      {/* Bottom fixed keypad and actions */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-white/80 dark:bg-[#151323]/80 backdrop-blur border-rose-200/60 dark:border-violet-800/40">
-        <div className="mx-auto max-w-[1000px] px-3 py-2">
-          <div className="flex items-stretch justify-between gap-3">
-            <div className="flex-1 overflow-x-auto">
-              <div className="grid grid-cols-9 gap-2 min-w-[540px]">
-                {Array.from({length:9},(_,i)=>i+1).map(n => (
-                  <button key={n} className="py-3 rounded-cute border bg-white/80 dark:bg-[#1d1b2a]/90 hover:bg-white active:scale-95 shadow-cute"
-                    onClick={() => placeNumber(n)} aria-label={`Number ${n}`}>{n}</button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-2 w-52 text-center">
-              <IconBtn onClick={erase} label="Erase">
-                <svg viewBox="0 0 24 24" className="w-6 h-6"><path d="M3 12l6-6h6l6 6-6 6H9z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M9 16l-4-4 4-4" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
-              </IconBtn>
-              <IconBtn onClick={undo} label="Undo">
-                <svg viewBox="0 0 24 24" className="w-6 h-6"><path d="M9 10H4V5" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M20 19a8 8 0 0 0-8-8H4l5-5" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
-              </IconBtn>
-              <IconBtn onClick={() => setNotesMode(v=>{ const nv=!v; saveSettings({ notesMode: nv, theme }); tap(); return nv; })} label={notesMode ? "Notes*":"Notes"}>
-                <svg viewBox="0 0 24 24" className="w-6 h-6"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
-              </IconBtn>
-              <IconBtn onClick={hint} label="Hint">
-                <svg viewBox="0 0 24 24" className="w-6 h-6"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 4 6h6c2-1 4-3 4-6a7 7 0 0 0-7-7z" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
-              </IconBtn>
-            </div>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-teal-200/70 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+        <div className="mx-auto flex max-w-[1040px] flex-col gap-2 px-3 py-2 sm:flex-row sm:items-stretch">
+          <div className="grid flex-1 grid-cols-9 gap-1 sm:gap-2">
+            {NUMBERS.map((num) => (
+              <button
+                key={num}
+                className="h-11 min-w-0 rounded-cute border border-zinc-200 bg-white/90 text-lg font-semibold shadow-cute active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-950"
+                onClick={() => placeNumber(num)}
+                disabled={!canPlay || selected == null}
+                aria-label={`Number ${num}`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 sm:w-56">
+            <IconBtn onClick={erase} label="Erase" disabled={!canPlay || selected == null}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                <path d="M3 12l6-6h6l6 6-6 6H9z" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M9 16l-4-4 4-4" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </IconBtn>
+            <IconBtn onClick={undo} label="Undo" disabled={!canPlay || undoStack.current.length === 0}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                <path d="M9 10H4V5" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M20 19a8 8 0 0 0-8-8H4l5-5" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </IconBtn>
+            <IconBtn onClick={toggleNotesMode} label={notesMode ? "Notes On" : "Notes"} disabled={!canPlay} pressed={notesMode}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </IconBtn>
+            <IconBtn onClick={hint} label="Hint" disabled={!canPlay}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 4 6h6c2-1 4-3 4-6a7 7 0 0 0-7-7z" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </IconBtn>
           </div>
         </div>
       </div>
@@ -447,11 +735,59 @@ export default function App() {
   );
 }
 
-function IconBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
+function Modal({ children }: { children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="flex flex-col items-center justify-center rounded-cute border bg-white/80 dark:bg-[#1d1b2a]/90 hover:bg-white active:scale-95 shadow-cute py-1">
-      <div className="flex items-center justify-center h-7">{children}</div>
-      <div className="text-[10px] leading-none mt-1">{label}</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-zinc-950/55" />
+      <div className="card relative z-10 w-full max-w-sm p-6 text-center">{children}</div>
+    </div>
+  );
+}
+
+function StatCard({ children, label, value }: { children?: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="card min-h-[104px] p-3">
+      <div className="mb-1 text-xs text-zinc-500 dark:text-zinc-400">{label}</div>
+      <div className="text-2xl font-semibold tabular-nums">{value}</div>
+      {children}
+    </div>
+  );
+}
+
+function InfoPanel({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="card p-3">
+      <div className="text-xs text-zinc-500 dark:text-zinc-400">{title}</div>
+      <div className="mt-1 text-lg font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function IconBtn({
+  children,
+  disabled = false,
+  label,
+  onClick,
+  pressed,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+  pressed?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={pressed}
+      className={[
+        "flex h-14 flex-col items-center justify-center rounded-cute border border-zinc-200 bg-white/90 py-1 text-center shadow-cute active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-950",
+        pressed ? "border-teal-500 bg-cyan-50 text-teal-800 dark:bg-cyan-400/15 dark:text-cyan-100" : "",
+      ].join(" ")}
+    >
+      <span className="flex h-6 items-center justify-center">{children}</span>
+      <span className="mt-1 text-[10px] leading-none">{label}</span>
     </button>
   );
 }
