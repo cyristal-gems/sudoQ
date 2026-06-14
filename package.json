@@ -8,7 +8,7 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
-    "build:pages": "npm run build && node scripts/sync-pages-build.mjs",
+    "build:pages": "npm run build && node -e \"const fs=require('fs'); fs.rmSync('assets',{recursive:true,force:true}); fs.cpSync('dist/assets','assets',{recursive:true}); fs.cpSync('dist/index.html','index.html'); fs.cpSync('dist/icon.png','icon.png'); console.log('Synced dist output to the repo root for GitHub Pages.');\"",
     "preview": "vite preview"
   },
   "repository": {
