@@ -1,22 +1,5 @@
 # sudoQ
-
-A modern, responsive Sudoku game built with **React + TypeScript + TailwindCSS**, designed to work beautifully on desktop, tablet, and mobile. **sudoQ** combines a clean Sudoku board with a fresh sky, amber, teal, and cyan color palette.
-
----
-
-## 🎯 Game Summary
-
-**sudoQ** is a Sudoku puzzle game with four difficulty levels: **Easy, Medium, Hard, Expert**. The goal is to fill the 9×9 grid so that each row, column, and 3×3 box contains the numbers 1–9 with no duplicates.
-
-You can track your best times, follow your progress, use notes and hints, and play comfortably on any device with intuitive touch, mouse, and keyboard controls.
-
----
-
-## 👀 Preview
-
-<img width="1284" height="847" alt="Screenshot 2025-09-06 at 03 44 04" src="https://github.com/user-attachments/assets/429016b9-682b-4063-9e25-774a46a06962" />
-
-<img width="1272" height="846" alt="Screenshot 2025-09-06 at 03 55 13" src="https://github.com/user-attachments/assets/5f6b5ca0-eee5-46e2-a79a-f9073b9df39d" />
+**sudoQ** is a Sudoku puzzle game with four difficulty levels: **Easy, Medium, Hard, Expert**. The goal is to fill the 9×9 grid so that each row, column, and 3×3 box contains the numbers 1–9 with no duplicates. You can track your best times, follow your progress, use notes and hints, and play comfortably on any device with intuitive touch, mouse, and keyboard controls.
 
 ---
 
@@ -56,7 +39,6 @@ You can track your best times, follow your progress, use notes and hints, and pl
 - **Restart:** **R**
 - **Move:** **Arrow Keys** to navigate cells.
  
-
 ---
 
 ## 🛠 Tech Stack
@@ -72,35 +54,6 @@ You can track your best times, follow your progress, use notes and hints, and pl
 ## 🚀 Play the Game
 
 👉 [sudoQ](https://cyristal-gems.github.io/sudoQ)  
-
----
-
-## 🖥 Run The Game Locally
-
-```bash
-git clone https://github.com/cyristal-gems/sudoQ.git
-cd sudoQ
-npm install
-npm run dev
-```
-
----
-
-## 📦 Build & Publish
-
-```bash
-npm run build        # Build the Vite app into dist/
-npm run build:pages  # Build and sync the GitHub Pages files to the repo root
-npm run preview      # Preview the production build locally
-```
-
-This repository is currently set up for GitHub Pages to serve the built files from the repo root. Before pushing visual or gameplay changes, run:
-
-```bash
-npm run build:pages
-```
-
-Then commit the updated root `index.html`, `assets/`, and `icon.png` files along with the source changes.
 
 ---
 
