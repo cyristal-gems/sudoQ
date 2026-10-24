@@ -53,7 +53,7 @@
 
 ## 🚀 Play the Game
 
-👉 [sudoQ](https://cyrisjoseph.dev/sudoQ)
+👉 [sudoQ](https://sudo-q.vercel.app)
 
 ---
 
