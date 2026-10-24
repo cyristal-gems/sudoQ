@@ -5,7 +5,7 @@ export default defineConfig({
   root: 'src',
   publicDir: '../public',
   plugins: [react()],
-  base: '/sudoQ/',
+  base: '/',
   build: {
     outDir: '../dist',
     emptyOutDir: true,

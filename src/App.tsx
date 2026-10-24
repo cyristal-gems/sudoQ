@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+import { completedGroups, completionGroups } from "./completions";
+
+type Celebration = { id: number; cells: number[]; full: boolean; message: string };
+
 type Difficulty = "easy" | "medium" | "hard" | "expert";
 type Theme = "light" | "dark";
 type Settings = { notesMode: boolean; theme: Theme };
@@ -211,6 +215,10 @@ export default function App() {
   const [newBest, setNewBest] = useState(false);
   const [lastWrong, setLastWrong] = useState<number | null>(null);
 
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  const completedRef = useRef(new Set<string>());
+  const celebrationId = useRef(0);
+
   const undoStack = useRef<Board[]>([]);
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
@@ -255,7 +263,7 @@ export default function App() {
 
     setRunning(false);
     setSolved(true);
-    setShowSolvedModal(true);
+
 
     if (bestMs == null || elapsed < bestMs) {
       saveBest(level, elapsed);
@@ -266,6 +274,27 @@ export default function App() {
       tap();
     }
   }, [bestMs, elapsed, gameOver, isComplete, level, solved]);
+
+  useEffect(() => {
+    if (!solution) return;
+    const current = completedGroups(board.map((cell) => cell.value), solution);
+    const newlyCompleted = completionGroups.filter((group) => current.has(group.id) && !completedRef.current.has(group.id));
+    completedRef.current = current;
+    if (!newlyCompleted.length) return;
+
+    const full = board.every((cell, index) => cell.value === solution[index]);
+    const events: Celebration[] = full
+      ? [{ id: ++celebrationId.current, cells: range(81), full: true, message: "Puzzle complete!" }]
+      : newlyCompleted.map((group) => ({ id: ++celebrationId.current, cells: group.cells, full: false, message: `${group.label} complete!` }));
+    setCelebrations((previous) => [...previous, ...events]);
+  }, [board, solution]);
+
+  useEffect(() => {
+    if (!solved) return;
+    // Let the final board ripple finish before showing the result.
+    const timeout = window.setTimeout(() => setShowSolvedModal(true), 1700);
+    return () => window.clearTimeout(timeout);
+  }, [solved]);
 
   useEffect(() => {
     return () => {
@@ -317,6 +346,8 @@ export default function App() {
       conflict: false,
     }));
 
+    completedRef.current = completedGroups(nextBoard.map((cell) => cell.value), generated.solution);
+    setCelebrations([]);
     setBoard(markConflicts(nextBoard));
     setSolution(generated.solution);
     setSelected(null);
@@ -500,6 +531,7 @@ export default function App() {
     <div className="min-h-screen w-full bg-gradient-to-b from-sky-50 via-white to-amber-50 p-3 text-zinc-900 dark:from-zinc-950 dark:via-[#10202a] dark:to-[#2a1f16] dark:text-zinc-100 sm:p-4">
       {solved && showSolvedModal && (
         <Modal>
+          <div className="solved-sparkle mb-2 text-4xl" aria-hidden="true">✦</div>
           <h2 className="mb-1 text-2xl font-bold">Puzzle solved!</h2>
           <p className="mb-3 text-sm">
             Time: <span className="font-semibold">{msToClock(elapsed)}</span>
@@ -529,6 +561,9 @@ export default function App() {
         </Modal>
       )}
 
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {celebrations.map((event) => event.message).join(" ")}
+      </div>
       <main className="mx-auto flex w-full max-w-[1040px] flex-col pb-36 sm:pb-32">
         <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -654,6 +689,19 @@ export default function App() {
                         cell.conflict || isWrongFlash ? "bg-rose-200 text-rose-700 dark:bg-rose-950 dark:text-rose-200" : "",
                       ].join(" ")}
                     >
+                      {celebrations.filter((event) => event.cells.includes(index)).map((event) => (
+                        <span
+                          key={event.id}
+                          aria-hidden="true"
+                          className={`completion-ripple ${event.full ? "completion-ripple--puzzle" : ""}`}
+                          style={{ animationDelay: `${event.full ? (r + c) * 35 : event.cells.indexOf(index) * 45}ms` }}
+                          onAnimationEnd={() => {
+                            if (index === event.cells[event.cells.length - 1]) {
+                              setCelebrations((previous) => previous.filter((item) => item.id !== event.id));
+                            }
+                          }}
+                        />
+                      ))}
                       {cell.value ? (
                         <span className="text-xl sm:text-2xl md:text-3xl">{cell.value}</span>
                       ) : cell.notes.size > 0 ? (

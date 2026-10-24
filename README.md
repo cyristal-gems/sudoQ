@@ -60,3 +60,15 @@
 ## 🔗 Connect
 - **LinkedIn:** [linkedin.com/in/cyristalj](https://www.linkedin.com/in/cyristalj/)  
 - **GitHub:** [github.com/cyristal-gems](https://github.com/cyristal-gems)
+
+## Deploy on Vercel
+
+1. Push the source changes to GitHub.
+2. In Vercel, add a new project and import `cyristal-gems/sudoQ`.
+3. Keep the root directory at the repository root (do not select `src`).
+4. Use the Vite preset, `npm run build` as the build command, and `dist` as the output directory. These are also saved in `vercel.json`.
+5. Deploy. Future pushes to the connected production branch will trigger a new deployment.
+
+The default build serves assets from `/` for Vercel. For the existing GitHub Pages deployment under `/sudoQ/`, use `npm run build:pages` instead.
+
+Correctly completed rows, columns, and 3×3 boxes show a teal ripple. Finishing the puzzle shows a gold wave across the board before the result dialog. Reduced-motion preferences are respected.

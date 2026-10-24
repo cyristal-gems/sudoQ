@@ -36,3 +36,37 @@ select {
 kbd {
   @apply inline-flex items-center justify-center rounded-md border border-zinc-300 px-1.5 py-0.5 font-mono text-xs dark:border-zinc-700;
 }
+
+/* An inset overlay preserves the board geometry and selected-cell styling. */
+.completion-ripple {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  border-radius: 6px;
+  animation: completion-ripple 900ms ease-out both;
+  background: rgba(20, 184, 166, 0.28);
+  box-shadow: inset 0 0 0 2px rgba(13, 148, 136, 0.7);
+}
+.completion-ripple--puzzle {
+  background: rgba(251, 191, 36, 0.35);
+  box-shadow: inset 0 0 0 2px rgba(245, 158, 11, 0.85);
+}
+.dark .completion-ripple { background: rgba(34, 211, 238, 0.3); }
+.dark .completion-ripple--puzzle { background: rgba(251, 191, 36, 0.4); }
+@keyframes completion-ripple {
+  0% { opacity: 0; transform: scale(0.75); }
+  25% { opacity: 1; transform: scale(1); }
+  65% { opacity: 0.8; }
+  100% { opacity: 0; transform: scale(1); }
+}
+.solved-sparkle { color: #f59e0b; animation: solved-sparkle 700ms ease-out; }
+@keyframes solved-sparkle {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.4); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .completion-ripple { animation: completion-ripple 1ms linear both; animation-delay: 0ms !important; }
+  .solved-sparkle { animation: none; }
+}
