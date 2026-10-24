@@ -53,7 +53,7 @@
 
 ## 🚀 Play the Game
 
-👉 [sudoQ](https://sudo-q.vercel.app)
+👉 [sudoQ](https://solvesudo.vercel.app)
 
 ---
 
